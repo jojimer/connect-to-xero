@@ -60,16 +60,6 @@ export default async function handler(req, res) {
     const tenantId = connectionsData[0].tenantId; // Assuming first connection is the relevant one
     const expiryTime = new Date().getTime() + (expires_in * 1000)
 
-    // console.log("response: ", tenantId,access_token, refresh_token, expiryTime);
-
-    // Set tokens as secure, HTTP-only cookies
-    // res.setHeader('Set-Cookie', [
-    //     `xero_access_token=${access_token}; Path=/; Secure; HttpOnly; SameSite=Strict`,
-    //     `xero_refresh_token=${refresh_token}; Path=/; Secure; HttpOnly; SameSite=Strict`,
-    //     `xero_tenant_id=${tenantId}; Path=/; Secure; HttpOnly; SameSite=Strict`,
-    //     `xero_token_expiry=${expiryTime.toString()}; Path=/; Secure; HttpOnly; SameSite=Strict`,
-    // ]);    // Clear the state cookie
-
     
     res.setHeader('Set-Cookie', [
         `xero_access_token=${access_token}; Path=/; Secure; SameSite=Strict`,
