@@ -263,7 +263,7 @@ function ConnectButton() {
             {/* Loading Indicator */}
             {loading && (
                 <div className="loading">
-                    Loading...
+                    Fetching data...
                 </div>
             )}
 
@@ -349,8 +349,8 @@ function ConnectButton() {
                                             <td>{timesheet.endDate}</td>
                                             <td>{timesheet.totalHours}</td>
                                             <td>
-                                                <span className={`status-badge ${timesheet.Status?.toLowerCase()}`}>
-                                                    {timesheet.Status || 'Unknown'}
+                                                <span className={`status-badge ${timesheet.status?.toLowerCase()}`}>
+                                                    {timesheet.status || 'Unknown'}
                                                 </span>
                                             </td>
                                         </tr>
