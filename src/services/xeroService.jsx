@@ -1,29 +1,34 @@
 // services/xeroService.js
-const API_BASE_URL = '/api'
 
 const xeroService = {
   getEmployees: async (accessToken, tenantId) => {
-    const response = await fetch(`${API_BASE_URL}/payroll.xro/2.0/employees`, {
+    const response = await fetch(`/api/getEmployees`, { // Vercel function URL
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Xero-tenant-id': tenantId,
-        'Accept': 'application/json'
-      }
-    })
-    return response
+      } //Removed Accept:application/json because you can only set this on the server side
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json(); // Parse JSON here
   },
 
   getTimesheets: async (accessToken, tenantId) => {
-    const response = await fetch(`${API_BASE_URL}/payroll.xro/2.0/timesheets`, {
+    const response = await fetch(`/api/getTimesheets`, { // Vercel function URL
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Xero-tenant-id': tenantId,
-        'Accept': 'application/json'
-      }
-    })
-    return response
-  }
-}
+      } //Removed Accept:application/json because you can only set this on the server side
+    });
 
-export default xeroService
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json(); // Parse JSON here
+  },
+};
+
+export default xeroService;
