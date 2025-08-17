@@ -1,36 +1,28 @@
 // api/xero/callback.js
-
 export default async function handler(req, res) {
-  const { code, state } = req.query;
-      if (!req.cookies) {
-        console.error("No cookies received");
-        return res.status(400).send('State verification failed: No cookies received.');
-      }
-  const authStateCookie = req.cookies.xero_auth_state;
-        if (!authStateCookie) {
-            console.error("No state cookie found");
-            return res.status(400).send('State verification failed: No state cookie found.');
-        }
-
-        if (state !== authStateCookie) {
-            console.error("State mismatch:", state, authStateCookie);
-            return res.status(400).send('State verification failed: State mismatch.');
-        }
-  if (!code) {
-    console.error("No code received from Xero");
-    return res.status(400).send('Authorization code missing');
-  }
+    console.log(req.url)
+    const url = req.url;
+    const urlParams = new URLSearchParams(url.split('?')[1]);
+    const code = urlParams.get('code')
+    // const error = urlParams.get('error')
+    // const state = urlParams.get('state')
 
   const clientId = process.env.XERO_CLIENT_ID;
   const clientSecret = process.env.XERO_CLIENT_SECRET;
   const redirectUri = process.env.XERO_REDIRECT_URI;
+
+  console.log('Making token exchange request with:', {
+        grant_type: 'authorization_code',
+        code: code,
+        redirect_uri: redirectUri
+      });
 
   try {
     const tokenResponse = await fetch("https://identity.xero.com/connect/token", {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
+        'Authorization': 'Basic ' + btoa(`${clientId}:${clientSecret}`)
       },
       body: new URLSearchParams({
         grant_type: 'authorization_code',
@@ -39,6 +31,8 @@ export default async function handler(req, res) {
       })
     });
 
+    // console.log("Token exchange response raw:", tokenResponse);
+
     if (!tokenResponse.ok) {
       console.error("Token exchange error:", tokenResponse.status, tokenResponse.statusText);
       return res.status(tokenResponse.status).send('Failed to exchange token');
@@ -46,6 +40,8 @@ export default async function handler(req, res) {
 
     const tokenData = await tokenResponse.json();
     const { access_token, expires_in, id_token, refresh_token } = tokenData;
+
+    console.log("Token data:", tokenData);
 
     // **Get Tenant ID** (You'll need to call the Xero API to get tenant info)
     const connectionsResponse = await fetch("https://api.xero.com/connections", {
@@ -62,17 +58,29 @@ export default async function handler(req, res) {
 
     const connectionsData = await connectionsResponse.json();
     const tenantId = connectionsData[0].tenantId; // Assuming first connection is the relevant one
+    const expiryTime = new Date().getTime() + (expires_in * 1000)
+
+    // console.log("response: ", tenantId,access_token, refresh_token, expiryTime);
 
     // Set tokens as secure, HTTP-only cookies
-      res.setHeader('Set-Cookie', [
-        `xero_access_token=${access_token}; Path=/; Secure; HttpOnly; SameSite=Strict`,
-        `xero_refresh_token=${refresh_token}; Path=/; Secure; HttpOnly; SameSite=Strict`,
-        `xero_tenant_id=${tenantId}; Path=/; Secure; HttpOnly; SameSite=Strict`
+    // res.setHeader('Set-Cookie', [
+    //     `xero_access_token=${access_token}; Path=/; Secure; HttpOnly; SameSite=Strict`,
+    //     `xero_refresh_token=${refresh_token}; Path=/; Secure; HttpOnly; SameSite=Strict`,
+    //     `xero_tenant_id=${tenantId}; Path=/; Secure; HttpOnly; SameSite=Strict`,
+    //     `xero_token_expiry=${expiryTime.toString()}; Path=/; Secure; HttpOnly; SameSite=Strict`,
+    // ]);    // Clear the state cookie
+
+    
+    res.setHeader('Set-Cookie', [
+        `xero_access_token=${access_token}; Path=/; SameSite=Strict`,
+        `xero_refresh_token=${refresh_token}; Path=/; SameSite=Strict`,
+        `xero_tenant_id=${tenantId}; Path=/; SameSite=Strict`,
+        `xero_token_expiry=${expiryTime.toString()}; Path=/; SameSite=Strict`,
     ]);    // Clear the state cookie
-    res.setHeader('Set-Cookie', `xero_auth_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict`);
+    // res.setHeader('Set-Cookie', `xero_auth_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict`);
 
     // Respond to the client
-    res.redirect('/');
+    return res.redirect('/');
 
   } catch (error) {
     console.error("Error in callback function:", error);

@@ -138,30 +138,25 @@ function ConnectButton() {
 
     const getTenantId = async (accessToken) => {
         const cachedTenantId = getCookie('xero_tenant_id');
-
         if (cachedTenantId) {
             console.log('Using cached tenant ID:', cachedTenantId);
             return cachedTenantId;
         }
-
         try {
             console.log('Fetching tenant ID with access token:', accessToken);
-            const response = await fetch('/api/connections', {
+            const response = await fetch('/api/getTenantId', { // Call the Vercel function
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
-                    'Accept': 'application/json',
-                },
+                    'Content-Type': 'application/json', // Add content type
+            },
             });
-
             if (!response.ok) {
                 throw new Error(`Failed to fetch tenant ID: ${response.status}`);
             }
-
             const data = await response.json();
             console.log('Tenant data received:', data);
-
-            if (data && data.length > 0) {
-                const tenantId = data[0].tenantId;
+            if (data && data.tenantId) {
+                const tenantId = data.tenantId;
                 setCookie('xero_tenant_id', tenantId, { secure: true, sameSite: 'strict' });
                 console.log('Tenant ID saved to cookie:', tenantId);
                 return tenantId;
@@ -384,95 +379,12 @@ function ConnectButton() {
     );
 }
 
-function Callback() {
-    const location = useLocation();
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        const exchangeToken = async () => {
-            const urlParams = new URLSearchParams(location.search);
-            const code = urlParams.get('code');
-            const error = urlParams.get('error');
-            const state = urlParams.get('state');
-
-            if (error) {
-                alert('OAuth error: ' + error);
-                navigate('/');
-                return;
-            }
-
-            if (code) {
-                try {
-                    // Exchange authorization code for tokens directly in the frontend
-                    // Note: This is not recommended for production - client secret should be kept secure
-                    const clientId = import.meta.env.VITE_XERO_CLIENT_ID;
-                    const clientSecret = import.meta.env.VITE_XERO_CLIENT_SECRET;
-                    const redirectUri = import.meta.env.VITE_XERO_REDIRECT_URI;
-
-                    if (!clientId || !clientSecret || !redirectUri) {
-                        alert('Missing Xero OAuth configuration. Please check your environment variables.');
-                        navigate('/');
-                        return;
-                    }
-
-                    const response = await fetch('https://identity.xero.com/connect/token', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            'Authorization': 'Basic ' + btoa(`${clientId}:${clientSecret}`)
-                        },
-                        body: new URLSearchParams({
-                            grant_type: 'authorization_code',
-                            code: code,
-                            redirect_uri: redirectUri
-                        })
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-
-                        // Store tokens in cookies
-                        const expiryTime = new Date().getTime() + (data.expires_in * 1000);
-                        Cookies.set('xero_access_token', data.access_token, { secure: true, sameSite: 'strict' });
-                        Cookies.set('xero_refresh_token', data.refresh_token, { secure: true, sameSite: 'strict' });
-                        Cookies.set('xero_token_expiry', expiryTime.toString(), { secure: true, sameSite: 'strict' });       
-
-                        alert('Successfully connected to Xero!');
-                        // Navigate back to the main page
-                        navigate('/');
-                    } else {
-                        const errorData = await response.json();
-                        // alert('Failed to connect to Xero: ' + (errorData.error_description || 'Unknown error'));
-                        navigate('/');
-                    }
-                } catch (err) {
-                    console.error('Error exchanging token:', err);
-                    // alert('Failed to connect to Xero: ' + err.message);
-                    navigate('/');
-                }
-            } else {
-                // No code or error, redirect to main page
-                navigate('/');
-            }
-        };
-
-        exchangeToken();
-    }, [location, navigate]);
-
-    return (
-        <div className="container">
-            <h1>Processing OAuth Callback...</h1>
-            <p>Please wait while we process your authentication.</p>
-        </div>
-    );
-}
 
 function App() {
     return (
         <div className="App">
             <Routes>
                 <Route path="/" element={<ConnectButton />} />
-                <Route path="/callback" element={<Callback />} />
             </Routes>
         </div>
     );

@@ -12,7 +12,8 @@ const xeroService = {
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    return response.json(); // Parse JSON here
+
+    return response;
   },
 
   getTimesheets: async (accessToken, tenantId) => {
@@ -27,7 +28,7 @@ const xeroService = {
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    return response.json(); // Parse JSON here
+    return response;
   },
 };
 

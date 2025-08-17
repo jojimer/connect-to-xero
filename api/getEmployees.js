@@ -1,6 +1,7 @@
 // api/getEmployees.js
 export default async function handler(req, res) {
   try {
+    // console.log("getEmployees function called request: ", req.headers);
     const accessToken = req.headers.authorization.split(' ')[1]; // Extract from authorization header
     const tenantId = req.headers['xero-tenant-id'];
     const apiUrl = `https://api.xero.com/payroll.xro/2.0/employees`; // Direct Xero API URL
@@ -19,6 +20,7 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json();
+    console.log("getEmployees response data: ", data);
     res.status(200).json(data);
   } catch (error) {
     console.error("Error in getEmployees Vercel function:", error);
