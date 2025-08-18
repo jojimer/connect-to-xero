@@ -1,9 +1,23 @@
 // api/getTimesheets.js
 export default async function handler(req, res) {
   try {
-    const accessToken = req.headers.authorization.split(' ')[1]; // Extract from authorization header
-    const tenantId = req.headers['xero-tenant-id'];
-        const apiUrl = `https://api.xero.com/payroll.xro/2.0/timesheets`; // Direct Xero API URL
+    // Get the cookie string from the headers
+    const cookieString = req.headers.cookie || '';
+
+    // Parse the cookie string into an object
+    const cookies = {};
+    if (cookieString) {
+        const cookiePairs = cookieString.split(';');
+        cookiePairs.forEach(pair => {
+        const [key, value] = pair.trim().split('=');
+        cookies[key] = value;
+        });
+    }
+
+    // Extract access token and tenant ID from cookies
+    const accessToken = cookies.xero_access_token; 
+    const tenantId = cookies.xero_tenant_id;
+    const apiUrl = `https://api.xero.com/payroll.xro/2.0/timesheets`; // Direct Xero API URL
 
 
     const response = await fetch(apiUrl, {

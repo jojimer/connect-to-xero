@@ -1,6 +1,19 @@
 // api/xero/refresh.js
 export default async function handler(req, res) {
-  const { refreshToken } = req.body;
+  // Get the cookie string from the headers
+  const cookieString = req.headers.cookie || '';
+
+    // Parse the cookie string into an object
+  const cookies = {};
+  if (cookieString) {
+        const cookiePairs = cookieString.split(';');
+        cookiePairs.forEach(pair => {
+        const [key, value] = pair.trim().split('=');
+        cookies[key] = value;
+    });
+  }
+
+  const { refreshToken } = cookies.xero_refresh_token;
 
   if (!refreshToken) {
     return res.status(400).json({ error: 'Refresh token is required' });

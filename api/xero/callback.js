@@ -1,6 +1,5 @@
 // api/xero/callback.js
 export default async function handler(req, res) {
-    console.log(req.url)
     const url = req.url;
     const urlParams = new URLSearchParams(url.split('?')[1]);
     const code = urlParams.get('code')
@@ -10,12 +9,6 @@ export default async function handler(req, res) {
   const clientId = process.env.XERO_CLIENT_ID;
   const clientSecret = process.env.XERO_CLIENT_SECRET;
   const redirectUri = process.env.XERO_REDIRECT_URI;
-
-  console.log('Making token exchange request with:', {
-        grant_type: 'authorization_code',
-        code: code,
-        redirect_uri: redirectUri
-      });
 
   try {
     const tokenResponse = await fetch("https://identity.xero.com/connect/token", {
@@ -62,9 +55,9 @@ export default async function handler(req, res) {
 
     
     res.setHeader('Set-Cookie', [
-        `xero_access_token=${access_token}; Path=/; Secure; SameSite=Strict`,
-        `xero_refresh_token=${refresh_token}; Path=/; Secure; SameSite=Strict`,
-        `xero_tenant_id=${tenantId}; Path=/; Secure; SameSite=Strict`,
+        `xero_access_token=${access_token}; Path=/; Secure; HttpOnly; SameSite=Strict`,
+        `xero_refresh_token=${refresh_token}; Path=/; Secure; HttpOnly; SameSite=Strict`,
+        `xero_tenant_id=${tenantId}; Path=/; Secure; HttpOnly; SameSite=Strict`,
         `xero_token_expiry=${expiryTime.toString()}; Path=/; Secure; SameSite=Strict`,
     ]);    // Clear the state cookie
     // res.setHeader('Set-Cookie', `xero_auth_state=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict`);

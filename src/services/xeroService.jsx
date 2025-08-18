@@ -1,13 +1,8 @@
 // services/xeroService.js
 
 const xeroService = {
-  getEmployees: async (accessToken, tenantId) => {
-    const response = await fetch(`/api/getEmployees`, { // Vercel function URL
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Xero-tenant-id': tenantId,
-      } //Removed Accept:application/json because you can only set this on the server side
-    });
+  getEmployees: async () => {
+    const response = await fetch(`/api/getEmployees`);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -16,14 +11,8 @@ const xeroService = {
     return response;
   },
 
-  getTimesheets: async (accessToken, tenantId) => {
-    const response = await fetch(`/api/getTimesheets`, { // Vercel function URL
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Xero-tenant-id': tenantId,
-      } //Removed Accept:application/json because you can only set this on the server side
-    });
+  getTimesheets: async () => {
+    const response = await fetch(`/api/getTimesheets`);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

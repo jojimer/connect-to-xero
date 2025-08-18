@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import xeroService from './services/xeroService';
 import './App.css';
 import Cookies from 'js-cookie';
@@ -19,11 +19,6 @@ function ConnectButton() {
         return Cookies.get(name);
     };
 
-    // Helper function to set cookies
-    const setCookie = (name, value, options = {}) => {
-        Cookies.set(name, value, options);
-    };
-
     // Helper function to remove cookies
     const removeCookie = (name) => {
         Cookies.remove(name);
@@ -31,10 +26,9 @@ function ConnectButton() {
 
     useEffect(() => {
         const checkConnection = () => {
-            const storedAccessToken = getCookie('xero_access_token');
             const tokenExpiry = getCookie('xero_token_expiry');
 
-            if (storedAccessToken && tokenExpiry) {
+            if (tokenExpiry) {
                 const now = new Date().getTime();
                 const expiry = parseInt(tokenExpiry);
 
@@ -42,13 +36,7 @@ function ConnectButton() {
                     setIsConnected(true);
                     setConnectionStatus('Connected to Xero');
                 } else {
-                    const refreshToken = getCookie('xero_refresh_token');
-                    if (refreshToken) {
-                        refreshAccessToken(refreshToken);
-                    } else {
-                        setIsConnected(false);
-                        setConnectionStatus('Not connected to Xero');
-                    }
+                    refreshAccessToken();
                 }
             } else {
                 setIsConnected(false);
@@ -58,35 +46,20 @@ function ConnectButton() {
         checkConnection();
     }, []);
 
-    const refreshAccessToken = async (refreshToken) => {
+    const refreshAccessToken = async () => {
         try {
             // Call the Vercel function
-            const response = await fetch('/api/xero/refresh', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ refreshToken }), // Send refresh token in the body
-            });
+            const response = await fetch('/api/xero/refresh');
 
             if (!response.ok) {
                 throw new Error('Failed to refresh token');
             }
 
-            const data = await response.json();
-
             // Store new tokens
-            const expiryTime = new Date().getTime() + (data.expires_in * 1000);
-            setCookie('xero_access_token', data.access_token, { secure: true, sameSite: 'strict' });
-            setCookie('xero_refresh_token', data.refresh_token, { secure: true, sameSite: 'strict' });
-            setCookie('xero_token_expiry', expiryTime.toString(), { secure: true, sameSite: 'strict' });
             setIsConnected(true);
             setConnectionStatus('Connected to Xero');
         } catch (err) {
             console.error('Error refreshing token:', err);
-            removeCookie('xero_access_token');
-            removeCookie('xero_refresh_token');
-            removeCookie('xero_token_expiry');
             setIsConnected(false);
             setConnectionStatus('Not connected to Xero');
         }
@@ -116,76 +89,12 @@ function ConnectButton() {
         setError('');
     };
 
-    const getAccessToken = () => {
-        const storedAccessToken = getCookie('xero_access_token');
-        const tokenExpiry = getCookie('xero_token_expiry');
-
-        if (storedAccessToken && tokenExpiry) {
-            const now = new Date().getTime();
-            const expiry = parseInt(tokenExpiry);
-
-            if (now >= expiry) {
-                const refreshToken = getCookie('xero_refresh_token');
-                if (refreshToken) {
-                    refreshAccessToken(refreshToken);
-                    return null; // Will retry after refresh
-                }
-            }
-        }
-
-        return storedAccessToken;
-    };
-
-    const getTenantId = async (accessToken) => {
-        const cachedTenantId = getCookie('xero_tenant_id');
-        if (cachedTenantId) {
-            console.log('Using cached tenant ID:', cachedTenantId);
-            return cachedTenantId;
-        }
-        try {
-            console.log('Fetching tenant ID with access token:', accessToken);
-            const response = await fetch('/api/getTenantId', { // Call the Vercel function
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json', // Add content type
-            },
-            });
-            if (!response.ok) {
-                throw new Error(`Failed to fetch tenant ID: ${response.status}`);
-            }
-            const data = await response.json();
-            console.log('Tenant data received:', data);
-            if (data && data.tenantId) {
-                const tenantId = data.tenantId;
-                setCookie('xero_tenant_id', tenantId, { secure: true, sameSite: 'strict' });
-                console.log('Tenant ID saved to cookie:', tenantId);
-                return tenantId;
-            } else {
-                throw new Error('No tenants found');
-            }
-        } catch (err) {
-            console.error('Error fetching tenant ID:', err);
-            throw err;
-        }
-    };
-
     const fetchEmployees = async () => {
         setLoading(true);
         setError('');
 
         try {
-            const accessToken = getAccessToken();
-            if (!accessToken) {
-                throw new Error('No access token available');
-            }
-
-            const tenantId = await getTenantId(accessToken);
-            if (!tenantId) {
-                throw new Error('No tenant ID available');
-            }
-
-            console.log('Fetching employees with:', { accessToken: !!accessToken, tenantId });
-            const response = await xeroService.getEmployees(accessToken, tenantId);
+            const response = await xeroService.getEmployees();
             console.log('Employee API response status:', response.status);
             console.log('Employee API response headers:', [...response.headers.entries()]);
             const data = await response.json();
@@ -211,18 +120,7 @@ function ConnectButton() {
         setError('');
 
         try {
-            const accessToken = getAccessToken();
-            if (!accessToken) {
-                throw new Error('No access token available');
-            }
-
-            const tenantId = await getTenantId(accessToken);
-            if (!tenantId) {
-                throw new Error('No tenant ID available');
-            }
-
-            console.log('Fetching timesheets with:', { accessToken: !!accessToken, tenantId });
-            const response = await xeroService.getTimesheets(accessToken, tenantId);
+            const response = await xeroService.getTimesheets();
             console.log('Timesheet API response status:', response.status);
             console.log('Timesheet API response headers:', [...response.headers.entries()]);
             const data = await response.json();
